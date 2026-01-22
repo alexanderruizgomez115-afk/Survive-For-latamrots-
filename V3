@@ -1,0 +1,342 @@
+-- ================= VARIABLES DIRECTAS (SIN GetService) =================
+local Players = game.Players
+local RunService = game.RunService
+local Workspace = workspace
+local UserInputService = game.UserInputService
+local Debris = game.Debris
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local HRP = Character:WaitForChild("HumanoidRootPart")
+
+-- ================= ESTADOS =================
+local TP_BASE = HRP.CFrame
+
+local SpeedEnabled = false
+local SpeedValue = 16
+local InfiniteJump = false
+local Noclip = false
+
+local TELEBUG = false
+local TELEBUG_SPEED = 20
+
+local REMOVE_WAVES = false
+local GOD_MODE = false
+
+-- HITBOX BAT (NO MATA)
+local HITBOX_ENABLED = false
+local HITBOX_RANGE = 35
+local HITBOX_FORCE = 55
+local HITBOX_CD = 0.8
+local HITBOX_COOLDOWN = {}
+
+-- ================= RESPAWN =================
+LocalPlayer.CharacterAdded:Connect(function(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+    HRP = char:WaitForChild("HumanoidRootPart")
+    task.wait(0.2)
+
+    if SpeedEnabled then Humanoid.WalkSpeed = SpeedValue end
+    if GOD_MODE then
+        Humanoid.MaxHealth = math.huge
+        Humanoid.Health = math.huge
+    end
+end)
+
+-- ================= RAYFIELD =================
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "AlexScriptsHub",
+    Icon = "crown",
+    LoadingTitle = "AlexScriptsHub",
+    LoadingSubtitle = "By Alxz",
+    Theme = "Default",
+})
+
+local MainTab     = Window:CreateTab("Main", "home")
+local HelperTab   = Window:CreateTab("Helper", "wrench")
+local StealerTab  = Window:CreateTab("Stealer", "box")
+local PlayerTab   = Window:CreateTab("Player", "users")
+local PlatformTab = Window:CreateTab("Plataforma", "link")
+
+-- ================= COORDENADAS =================
+local Locations = {
+    ["Common"]     = CFrame.new(18,53,3),
+    ["Uncommon"]   = CFrame.new(-71,54,0),
+    ["Rare"]       = CFrame.new(-201,54,-4),
+    ["Epic"]       = CFrame.new(-358,54,0),
+    ["Legendary"]  = CFrame.new(-506,54,0),
+    ["Mythic"]     = CFrame.new(-683,54,1),
+    ["Celestial"]  = CFrame.new(-857,54,2),
+    ["Cosmic"]     = CFrame.new(-1039,54,2),
+    ["Secret"]     = CFrame.new(-1418,54,-1),
+    ["Area Buena"] = CFrame.new(-1599,54,5),
+}
+
+local SelectedLocation = "Common"
+
+-- ================= MAIN =================
+MainTab:CreateButton({
+    Name = "TP BASE",
+    Callback = function()
+        HRP.CFrame = TP_BASE * CFrame.Angles(0, math.rad(180), 0)
+    end
+})
+
+MainTab:CreateDropdown({
+    Name = "Selecciona destino",
+    Options = {"Common","Uncommon","Rare","Epic","Legendary","Mythic","Celestial","Cosmic","Secret","Area Buena"},
+    CurrentOption = {"Common"},
+    Callback = function(v)
+        SelectedLocation = v[1]
+    end
+})
+
+MainTab:CreateButton({
+    Name = "LLÉVAME A",
+    Callback = function()
+        local cf = Locations[SelectedLocation]
+        if cf then
+            HRP.CFrame = cf * CFrame.Angles(0, math.rad(180), 0)
+        end
+    end
+})
+
+-- ================= HELPER =================
+HelperTab:CreateToggle({
+    Name = "Speed Booster",
+    Callback = function(v)
+        SpeedEnabled = v
+        Humanoid.WalkSpeed = v and SpeedValue or 16
+    end
+})
+
+HelperTab:CreateSlider({
+    Name = "Ajuste (Speed)",
+    Range = {0,500},
+    Increment = 1,
+    CurrentValue = 16,
+    Callback = function(v)
+        SpeedValue = v
+        if SpeedEnabled then
+            Humanoid.WalkSpeed = v
+        end
+    end
+})
+
+HelperTab:CreateToggle({
+    Name = "Infinite Jump",
+    Callback = function(v)
+        InfiniteJump = v
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if InfiniteJump then
+        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+HelperTab:CreateToggle({
+    Name = "Noclip",
+    Callback = function(v)
+        Noclip = v
+    end
+})
+
+RunService.Stepped:Connect(function()
+    if Noclip then
+        for _,p in pairs(Character:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- ================= STEALER =================
+StealerTab:CreateToggle({
+    Name = "Anti Olas (GOD)",
+    Callback = function(v)
+        REMOVE_WAVES = v
+        GOD_MODE = v
+        if v then
+            Humanoid.MaxHealth = math.huge
+            Humanoid.Health = math.huge
+        end
+    end
+})
+
+RunService.Heartbeat:Connect(function()
+    if REMOVE_WAVES then
+        for _,o in pairs(Workspace:GetDescendants()) do
+            if o:IsA("BasePart") then
+                local n = o.Name:lower()
+                if n:find("ola") or n:find("wave") then
+                    o.Transparency = 1
+                    o.CanCollide = false
+                end
+            end
+        end
+        Humanoid.Health = math.huge
+    end
+end)
+
+StealerTab:CreateToggle({
+    Name = "Telebuguiado",
+    Callback = function(v)
+        TELEBUG = v
+    end
+})
+
+StealerTab:CreateSlider({
+    Name = "Ajuste (buguiado)",
+    Range = {0,100},
+    Increment = 1,
+    CurrentValue = 20,
+    Callback = function(v)
+        TELEBUG_SPEED = v
+    end
+})
+
+RunService.RenderStepped:Connect(function()
+    if TELEBUG then
+        HRP.Velocity = Camera.CFrame.LookVector * TELEBUG_SPEED
+    end
+end)
+
+-- ================= HITBOX CON BAT (NO MATA) =================
+local function hasBat()
+    for _,t in ipairs(Character:GetChildren()) do
+        if t:IsA("Tool") and t.Name:lower():find("bat") then
+            return true
+        end
+    end
+end
+
+local function push(hrp)
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+    bv.Velocity = (hrp.Position - HRP.Position).Unit * HITBOX_FORCE + Vector3.new(0,18,0)
+    bv.Parent = hrp
+    Debris:AddItem(bv,0.25)
+end
+
+RunService.RenderStepped:Connect(function()
+    if not HITBOX_ENABLED or not hasBat() then return end
+
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {Character}
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+
+    local r = Workspace:Raycast(Camera.CFrame.Position, Camera.CFrame.LookVector * HITBOX_RANGE, params)
+    if r and r.Instance then
+        local m = r.Instance:FindFirstAncestorOfClass("Model")
+        if m and m ~= Character and not HITBOX_COOLDOWN[m] then
+            local hrp = m:FindFirstChild("HumanoidRootPart")
+            local hum = m:FindFirstChildOfClass("Humanoid")
+            if hrp and hum then
+                HITBOX_COOLDOWN[m] = true
+                push(hrp)
+                task.delay(HITBOX_CD,function()
+                    HITBOX_COOLDOWN[m] = nil
+                end)
+            end
+        end
+    end
+end)
+
+PlayerTab:CreateToggle({
+    Name = "Hitbox (BAT)",
+    Callback = function(v)
+        HITBOX_ENABLED = v
+    end
+})
+
+-- ================= PLAYER VISION =================
+local rainbowCons = {}
+
+local function overhead(plr)
+    if plr == LocalPlayer or not plr.Character then return end
+    local head = plr.Character:FindFirstChild("Head")
+    if not head or head:FindFirstChild("RainbowName") then return end
+
+    local gui = Instance.new("BillboardGui", head)
+    gui.Name = "RainbowName"
+    gui.Size = UDim2.new(0,95,0,20)
+    gui.StudsOffset = Vector3.new(0,2.5,0)
+    gui.AlwaysOnTop = true
+
+    local txt = Instance.new("TextLabel", gui)
+    txt.Size = UDim2.new(1,0,1,0)
+    txt.BackgroundTransparency = 1
+    txt.Text = plr.Name
+    txt.Font = Enum.Font.GothamBold
+    txt.TextScaled = true
+
+    local stroke = Instance.new("UIStroke", txt)
+    stroke.Thickness = 0.8
+
+    local h = 0
+    rainbowCons[plr] = RunService.RenderStepped:Connect(function()
+        h = (h + 0.004) % 1
+        txt.TextColor3 = Color3.fromHSV(h,1,1)
+    end)
+end
+
+PlayerTab:CreateToggle({
+    Name = "Players Visión (Rainbow)",
+    Callback = function(v)
+        if v then
+            for _,p in ipairs(Players:GetPlayers()) do
+                if p.Character then overhead(p) end
+                p.CharacterAdded:Connect(function()
+                    task.wait(0.3)
+                    overhead(p)
+                end)
+            end
+        else
+            for _,p in ipairs(Players:GetPlayers()) do
+                if p.Character and p.Character:FindFirstChild("Head") then
+                    local g = p.Character.Head:FindFirstChild("RainbowName")
+                    if g then g:Destroy() end
+                end
+                if rainbowCons[p] then
+                    rainbowCons[p]:Disconnect()
+                    rainbowCons[p] = nil
+                end
+            end
+        end
+    end
+})
+
+-- ================= PLATAFORMA =================
+PlatformTab:CreateButton({
+    Name = "TikTok",
+    Callback = function()
+        setclipboard("https://www.tiktok.com/@alexscripts2?_r=1&_t=ZS-93GjS4S9cjV")
+    end
+})
+
+PlatformTab:CreateButton({
+    Name = "Comunidad WhatsApp",
+    Callback = function()
+        setclipboard("https://chat.whatsapp.com/HZoKhaZvmYY5s8n7uj9Z60")
+    end
+})
+
+PlatformTab:CreateParagraph({
+    Title = "",
+    Content = "¡Gracias por usar mi script Papu!"
+})
+
+Rayfield:Notify({
+    Title = "AlexScriptsHub",
+    Content = "Todo cargado correctamente 🔥",
+    Duration = 5
+})
